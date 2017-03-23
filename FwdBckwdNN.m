@@ -1,7 +1,6 @@
 %% 
 clear variables
 close all
-% clf
 clc
 
 %Initialization
@@ -13,21 +12,21 @@ momentum = [0.7;0.8];
 deltaw1last = 0;
 deltaw2last = 0;
 epoch = 0;
-targetError = 1e-4;
+targetError = 1e-6;
 maxEpochs = 100000;
 error = Inf*ones(length(tp),1);
-
+epochError = Inf;
 %Randomizing starting weights
 deltaw1 = rand(2,3);
-% deltaw1 = [0.1 0.7 0.4;0.9 0.67 0.83];
 deltaw2 = rand(1,2);
-% deltaw2 = [0.15 0.49];
 alpha = learningRate(1);
 % alpha = 0.65;
 momenta = momentum(1);
+% deltaw1 = [0.1 0.7 0.4;0.9 0.67 0.83];
+% deltaw2 = [0.15 0.49];
 
 %% Enter the training loop
-while epoch < maxEpochs && ~all(abs(error) < targetError)
+while epoch < maxEpochs && epochError > targetError
     epoch = epoch + 1;
     trainingIndex = randperm(4); %randomizing the training data
     for i = trainingIndex
@@ -36,29 +35,20 @@ while epoch < maxEpochs && ~all(abs(error) < targetError)
         x = [tp(i,:) 1];
         uh1 = HiddenLayer(x,deltaw1);
         uo = OutputLayer(uh1,deltaw2);
-%         sigmah = deltaw1*[x 1]';
-%         uh = logsig(sigmah);
-%         sigmao = deltaw2*uh;
-%         uo = sigmao;
-%         error(i) = (d0(i) - uo);
-
+        
         %Back Propagate 
         deltao = (d0(i) - uo);
         error(i) = deltao;
-%         sh = deltaw2*deltao;
-%         deltah = sh'.*(uh.*(1-uh));
         deltah1 = HiddenBackProp(deltao,deltaw2,uh1);
-%         deltaw2 = deltaw2 + alpha*deltao*uh' + momenta*deltaw2last;
         deltaw2 = UpdateHiddenWeights(deltaw2,alpha,deltao,uh1,momenta,deltaw2last);
-%         deltaw1 = deltaw1 + alpha*deltah*[x 1] + momenta*deltaw1last;
         deltaw1 = UpdateInputWeights(deltaw1,alpha,deltah1,x,momenta,deltaw1last);
         
         %Setting the previous weight
         deltaw2last = alpha*deltao*uh1' + momenta*deltaw2last;
         deltaw1last = alpha*deltah1*x + momenta*deltaw1last;
     end
-    totalSquaredError(epoch) = sum(error.^2);
-%     epoch = epoch + 1;
+    totalSquaredError(epoch) = error'*error;
+    epochError = totalSquaredError(epoch);
 end
 
 %% Testing Phase
